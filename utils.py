@@ -1,7 +1,7 @@
 import csv
 from db import Author
 from db import Paper
-
+from db import PaperAuthor
 
 class Utils(object):
     def __init__(self):
@@ -13,6 +13,9 @@ class Utils(object):
         self.paper_list = []
         self.paper_dict = dict()
 
+        self.paper_author_list = []
+        self.paper_author_dict = dict()
+
         # Load databases: Author, Paper, PaperAuthor.
         self.load_author_data('./dataRev2/Author.csv')
         print("Load author data done...")
@@ -23,11 +26,11 @@ class Utils(object):
         self.load_paper_author_data('./dataRev2/PaperAuthor.csv')
         print("Load paper-author data done...")
 
-        self.load_non_ambiguous_paper('./non_ambiguous_paper_author.csv')
-        print("Load non ambiguous data done...")
+        # self.load_non_ambiguous_paper('./non_ambiguous_paper_author.csv')
+        # print("Load non ambiguous data done...")
 
         # Load the training data
-        self.load_train_data('./dataRev2/Train.csv')
+        # self.load_train_data('./dataRev2/Train.csv')
 
     # Given author id, returns Author instance reference
     def _author_id2author(self, author_id):
@@ -44,6 +47,13 @@ class Utils(object):
             return None
         else:
             return self.paper_list[paper_array_index]
+
+    def _paper_author2paper_author(self, paper_id, author_id):
+        paper_author_index = self.paper_author_dict.get((paper_id, author_id))
+        if paper_author_index is None:
+            return None
+        else:
+            return self.paper_author_list[paper_author_index]
 
     # Load Author database
     def load_author_data(self, filename):
@@ -85,6 +95,9 @@ class Utils(object):
                     if author_array_index is None:
                         continue
 
+                    self.paper_author_dict[(paper_id, author_id)] = len(self.paper_author_list)
+                    self.paper_author_list.append(PaperAuthor(row[0], row[1], row[2], row[3]))
+                    """
                     if author_array_index is not None:
                         self.author_list[author_array_index].add_candidate_paper(paper_id)
                     else:
@@ -94,6 +107,7 @@ class Utils(object):
 
                     if paper_array_index is not None:
                         self.paper_list[paper_array_index].add_candidate_author(author_id)
+                    """
 
     def load_non_ambiguous_paper(self, filename):
         with open(filename, newline='') as f:
@@ -296,9 +310,34 @@ class Utils(object):
 
                     wc = input("input any key to continue")
 
+    def test_paper_author(self):
+        while 1:
+            author_id = int(input("Author Id: "))
+            paper_id = int(input("Paper Id: "))
+
+            author = self._author_id2author(author_id)
+            paper = self._paper_id2paper(paper_id)
+
+            if author is None:
+                print("Author: None")
+            else:
+                print("Author ", author)
+
+            if paper is None:
+                print("Paper: None")
+            else:
+                print("Paper ", paper)
+
+            paper_author = self._paper_author2paper_author(paper_id, author_id)
+            if paper_author is None:
+                print("PaperAuthor: None")
+            else:
+                print("PaperAuthor: ", paper_author)
+
+
 if __name__ == "__main__":
     utils = Utils()
-    utils.test_feature_vector()
+    utils.test_paper_author()
 
     #utils.test_dictionary()
     # utils.write_non_ambiguous_paper()
