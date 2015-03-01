@@ -1,7 +1,9 @@
 import csv
+import jellyfish
 from db import Author
 from db import Paper
 from db import PaperAuthor
+
 
 class Utils(object):
     def __init__(self):
@@ -12,9 +14,6 @@ class Utils(object):
         # paper_list is a list of Paper, paper_dict maps paper_id to array index of paper_list.
         self.paper_list = []
         self.paper_dict = dict()
-
-        self.paper_author_list = []
-        self.paper_author_dict = dict()
 
         # Load databases: Author, Paper, PaperAuthor.
         self.load_author_data('./dataRev2/Author.csv')
@@ -42,13 +41,6 @@ class Utils(object):
         else:
             return self.paper_list[paper_array_index]
 
-    def _paper_author2paper_author(self, paper_id, author_id):
-        paper_author_index = self.paper_author_dict.get((paper_id, author_id))
-        if paper_author_index is None:
-            return None
-        else:
-            return self.paper_author_list[paper_author_index]
-
     # Load Author database
     def load_author_data(self, filename):
         array_index = 0
@@ -56,7 +48,7 @@ class Utils(object):
             reader = csv.reader(f)
             for row in reader:
                 if row[0] != 'Id':
-                    self.author_list.append(Author(row[0], row[1], row[2]))
+                    self.author_list.append(Author(row[0].lower(), row[1].lower(), row[2].lower()))
                     self.author_dict[int(row[0])] = array_index
                     array_index += 1
 
@@ -67,7 +59,8 @@ class Utils(object):
             reader = csv.reader(f)
             for row in reader:
                 if row[0] != 'Id':
-                    self.paper_list.append(Paper(row[0], row[1], row[2], row[3], row[4], row[5]))
+                    self.paper_list.append(Paper(row[0].lower(), row[1].lower(), row[2].lower(),
+                                                 row[3].lower(), row[4].lower(), row[5].lower()))
                     self.paper_dict[int(row[0])] = array_index
                     array_index += 1
 
@@ -85,12 +78,15 @@ class Utils(object):
                     if paper_array_index is None:
                         continue
 
+                    self.paper_list[paper_array_index].add_candidate_author((row[1].lower(),
+                                                                             row[2].lower(),
+                                                                             row[3].lower()))
+
                     author_array_index = self.author_dict.get(author_id)
-                    if author_array_index is None:
+                    if author_array_index is not None:
+                        self.author_list[author_array_index].add_candidate_paper(paper_id)
                         continue
 
-                    self.paper_author_dict[(paper_id, author_id)] = len(self.paper_author_list)
-                    self.paper_author_list.append(PaperAuthor(row[0], row[1], row[2], row[3]))
                     """
                     if author_array_index is not None:
                         self.author_list[author_array_index].add_candidate_paper(paper_id)
@@ -124,7 +120,7 @@ class Utils(object):
                 print(author)
                 self.find_non_ambiguous_papers(author_id)
 
-    def test_paper(self):
+    def test_paper(self):g
         while 1:
             paper_id = int(input('Paper Id: '))
             paper = self._paper_id2paper(paper_id)
@@ -172,12 +168,68 @@ class Utils(object):
             else:
                 print("Paper ", paper)
 
-            paper_author = self._paper_author2paper_author(paper_id, author_id)
-            if paper_author is None:
-                print("PaperAuthor: None")
-            else:
-                print("PaperAuthor: ", paper_author)
+            print("features_author_profile: ", self.features_author_profile(author_id, paper_id))
+            print("features_coauthor_name_matching: ", self.features_coauthor_name_matching(author_id, paper_id))
+            print("\n")
 
+    def features_author_profile(self, author_id, paper_id):
+        # the levenshtein distance between the names of the target author in Author.csv
+        # and PaperAuthor.csv
+        author = self._author_id2author(author_id)
+        paper = self._paper_id2paper(paper_id)
+        author_name = author.name
+        author_affiliation = author.affiliation
+
+        name_distance = []
+        affiliation_distance = []
+
+        for uid, name, affiliation in paper.candidate_authors:
+            if int(uid) == int(author_id):
+                continue
+
+            print("candidate: ", name, " : ", affiliation)
+            if len(name) > 0:
+                name_distance.append(jellyfish.levenshtein_distance(author_name, name))
+            if len(author_affiliation) > 0 and len(affiliation) > 0:
+                affiliation_distance.append(jellyfish.levenshtein_distance(author_affiliation, affiliation))
+
+        return [max(name_distance) if len(name_distance) > 0 else 0.5,
+                max(affiliation_distance) if len(affiliation_distance) > 0 else 0.5]
+
+    def features_coauthor_name_matching(self, author_id, paper_id):
+        # the maximum Jaro distances between the target author's name and each coauthor's name.
+        author = self._author_id2author(author_id)
+        paper = self._paper_id2paper(paper_id)
+        author_name = author.name
+        author_last_name = author.get_last_name()
+        author_affiliation = author.affiliation
+
+        coauthor_name_dist = []
+        coauthor_last_name_dist = []
+        coauthor_name_dist_ig = []
+        coauthor_last_name_dist_ig = []
+
+        coauthor_affiliation_jaro_dist = []
+        coauthor_affiliation_leve_dist = []
+
+        for uid, name, affiliation in paper.candidate_authors:
+            if int(uid) == int(author_id):
+                continue
+
+            print("candidate: ", name, " : ", affiliation)
+            if len(name) > 0:
+                coauthor_name_dist.append(jellyfish.jaro_distance(author_name, name))
+                coauthor_last_name_dist.append(jellyfish.jaro_distance(author_last_name,
+                                                                       Author.get_last_name(name)))
+            if len(affiliation) > 0 and len(author_affiliation) > 0 and affiliation != author_affiliation:
+                coauthor_name_dist_ig.append(jellyfish.jaro_distance(author_name, name))
+                coauthor_last_name_dist_ig.append(jellyfish.levenshtein_distance(author_last_name,
+                                                                                 Author.get_last_name(name)))
+
+        return [max(coauthor_name_dist) if len(coauthor_name_dist) > 0 else 0.5,
+                max(coauthor_last_name_dist) if len(coauthor_last_name_dist) > 0 else 0.5,
+                max(coauthor_name_dist_ig) if len(coauthor_name_dist_ig) > 0 else 0.5,
+                min(coauthor_last_name_dist_ig) if len(coauthor_last_name_dist_ig) > 0 else 0.5]
 
 if __name__ == "__main__":
     utils = Utils()

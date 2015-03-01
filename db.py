@@ -21,6 +21,10 @@ class Author(object):
     def get_last_name(self):
         return self.name.split(' ')[-1]
 
+    @staticmethod
+    def get_last_name(name):
+        return name.split(' ')[-1]
+
 
 class Paper(object):
     def __init__(self, id, title, year, conference_id, journal_id, keywords):
@@ -38,8 +42,9 @@ class Paper(object):
                           self.conference_id, self.journal_id, self.keywords,
                           str(self.num_candidate_authors)])
 
-    def add_candidate_author(self, author_id):
-        self.candidate_authors.append(author_id)
+    def add_candidate_author(self, author_info):
+        # author_info = (author_id, name, affiliation)
+        self.candidate_authors.append(author_info)
         self.num_candidate_authors += 1
 
 
