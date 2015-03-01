@@ -8,11 +8,8 @@ class Author(object):
         self.id = id
         self.name = name
         self.affiliation = affiliation
-
-
         self.num_candidate_papers = 0
         self.candidate_papers = []
-        self.non_ambiguous_paper_ids = []
 
     def __str__(self):
         return ', '.join([self.id, self.name, self.affiliation, str(self.num_candidate_papers)])
@@ -23,9 +20,6 @@ class Author(object):
 
     def get_last_name(self):
         return self.name.split(' ')[-1]
-
-    def add_non_ambiguous_paper(self, paper_id):
-        self.non_ambiguous_paper_ids.append(paper_id)
 
 
 class Paper(object):
