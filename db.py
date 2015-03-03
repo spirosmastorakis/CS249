@@ -5,15 +5,13 @@ class Author(object):
         self.id = id
         self.name = name
         self.affiliation = affiliation
-        self.num_candidate_papers = 0
-        self.candidate_papers = []
+        self.candidate_papers = set()
 
     def __str__(self):
-        return ', '.join([str(self.id), self.name, self.affiliation, str(self.num_candidate_papers)])
+        return ', '.join([str(self.id), self.name, self.affiliation, str(len(self.candidate_papers))])
 
     def add_candidate_paper(self, paper_id):
-        self.candidate_papers.append(paper_id)
-        self.num_candidate_papers += 1
+        self.candidate_papers.add(paper_id)
 
     def get_last_name(self):
         return self.name.split(' ')[-1]
@@ -30,7 +28,7 @@ class Paper(object):
         self.year = year
         self.conference_id = conference_id
         self.journal_id = journal_id
-        self.keywords = keywords
+        self.keywords = set(keywords)
         self.candidate_authors = []
         self.num_candidate_authors = 0
 
