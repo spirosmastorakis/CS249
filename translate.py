@@ -4,9 +4,8 @@ def translate_input(path):
     with open(path[0], "r") as fi, open(path[1], 'w') as fo:
         reader = csv.reader(fi)
         next(fi)
-        fo.write(': data' + '\n')
         for row in reader:
-            #print row[0]
+            print row[0]
             paperid_list = row[1].split(" ")
             pair_list = [[int(row[0]), int(elem)] for elem in paperid_list]
 
@@ -22,7 +21,7 @@ def translate_input(path):
 
 def main(argv):
     if len(argv) != 1 + 2:
-        print >> sys.stderr, 'Usage : %s Target.csv Transformed.csv' % (argv[0],)
+        print >> sys.stderr, 'Usage : %s Target.csv Transformed.txt' % (argv[0],)
         return -1
     
     translate_input((argv[1],argv[2]))
